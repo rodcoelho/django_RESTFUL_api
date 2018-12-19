@@ -24,10 +24,10 @@ def index(request):
 
 
 # ------------------------------------------------------------- #
-# ------------------------ READ/UPDATE ------------------------ #
+# ------------------------ CREATE/READ ------------------------ #
 # ------------------------------------------------------------- #
 @csrf_exempt
-def get_tasks(request):
+def get_many_tasks(request):
 
     if request.method == "GET":
         """curl -i http://localhost:5000/api/tasks"""
@@ -48,10 +48,43 @@ def get_tasks(request):
         return JsonResponse({'task': task})
 
 
-def get_task(request, task_id):
-    """curl -i http://localhost:8000/api/tasks/3"""
-    task = [task for task in tasks if task_id == task['id']]
-    if len(task) == 0:
-        return JsonResponse({'error': 'Not Found'})
-    return JsonResponse({'task': task[0]})
+@csrf_exempt
+def get_one_task(request, task_id):
+    task = [task for task in tasks if task['id'] == task_id]
+
+    if request.method == "GET":
+        """curl -i http://localhost:8000/api/tasks/3"""
+        if len(task) == 0:
+            return JsonResponse({'error': 'Not Found'})
+        return JsonResponse({'task': task[0]})
+
+    elif request.method == 'PUT':
+        """curl -i -H "Content-Type: application/json" -X PUT -d '{"done":true}' http://localhost:8000/api/tasks/2"""  # noqa
+        request_json_body = json.loads(request.body)
+
+        # -------------- catch mistakes -------------- #
+        if len(task) == 0:
+            return JsonResponse({'error': 'null'})
+        if not request_json_body:
+            return JsonResponse({'error': 'null'})
+        if 'title' in request_json_body and not isinstance(request_json_body['title'], str):
+            return JsonResponse({'error': 'null'})
+        if 'description' in request_json_body and not isinstance(request_json_body['description'], str):
+            return JsonResponse({'error': 'null'})
+        if 'done' in request_json_body and type(request_json_body['done']) is not bool:
+            return JsonResponse({'error': 'null'})
+
+        # --------------- update dict --------------- #
+        task[0]['title'] = request_json_body.get('title', task[0]['title'])
+        task[0]['description'] = request_json_body.get('description', task[0]['description'])
+        task[0]['done'] = request_json_body.get('done', task[0]['done'])
+        return JsonResponse({'task': task[0]})
+
+    elif request.method == "DELETE":
+        """curl -X "DELETE"  http://localhost:8000/api/tasks/1"""  # noqa
+        if len(task) == 0:
+            return JsonResponse({'error': 'null'})
+        tasks.remove(task[0])
+        return JsonResponse({'result': True})
+
 
